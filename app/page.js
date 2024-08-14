@@ -1,5 +1,5 @@
 'use client'
-import { Box, Stack } from "@mui/material";
+import { Box, Stack, TextField,Button } from "@mui/material";
 import styles from "./page.module.css";
 import {useState } from "react";
 import { grey } from "@mui/material/colors";
@@ -10,6 +10,43 @@ export default function Home() {
     content:`Hi! I am your personal shopping assistant, how can I assist you today :)`
   }])
   const[message,setMessage]=useState('')
+  const sendMessage =async()=>{
+    setMessage('')
+    setMessages((messages)=>[
+      ...messages,
+      {role: "user", content: message},
+      {role: 'assistant', content:""}
+    ])
+    const response =fetch('api/chat',{
+      method: 'POST',
+      headers:{
+        'Content-Type':'application/json'
+      },
+      body: JSON.stringify([...messages,{role:'user',content:message}])
+    }).then(async(res)=>{
+      const reader= res.body.getReader()
+      const decoder = new TextDecoder()
+      let result=''
+      return reader.read().then(function processText({done,value}){
+        if(done){
+          return result
+        }
+        const text =decoder.decode(value || new Int8Array(), {stream:true})
+        setMessages((prevMessages)=>{
+          let lastMessage = prevMessages[prevMessages.length-1]
+          let otherMessages = prevMessages.slice(0,prevMessages.length-1)
+          return[
+            ...otherMessages,
+            {
+              ...lastMessage,
+              content: lastMessage.content+text,
+            }
+          ]
+          })
+        })
+      })
+    }
+  
   return(
   <Box width='100vw' height='100vh' borderRadius={25} borderColor='white' display='flex' flexDirection="column" justifyContent="center" alignItems='center'>
   <Stack
@@ -35,6 +72,21 @@ export default function Home() {
           </Box></Box>
       ))
       }
+  </Stack>
+  <Stack direction="row" spacing={2}>
+    <TextField
+    bgcolor='white'
+    textcolor='white'
+    border='white'
+    
+    label='message'
+    fullWidth
+    value={message}
+    onChange={(e)=>setMessage(e.target.value)}
+    />
+    <Button varient='contained'>
+      Send
+    </Button>
   </Stack>
   </Stack>
   </Box>
